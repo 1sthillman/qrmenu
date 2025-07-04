@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
+import 'dart:ui';
 
 // Masa durumlarına karşılık gelen renk, metin ve ikonları tanımlayan bir yardımcı fonksiyon
 (Color, String, IconData) getMasaDurumBilgisi(String durum) {
@@ -33,70 +35,106 @@ class MasaKarti extends StatelessWidget {
   Widget build(BuildContext context) {
     final (renk, durumMetni, ikon) = getMasaDurumBilgisi(durum);
 
-    return Card(
-      elevation: 6,
-      clipBehavior: Clip.antiAlias, // Taşan parlama efektini engeller
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: onTap,
+    return ClipPath(
+      clipper: OctagonClipper(),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          decoration: BoxDecoration(
-            color: renk,
-            gradient: LinearGradient(
-              colors: [renk.withOpacity(0.8), renk],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                 AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                    return FadeTransition(opacity: animation, child: child);
-                  },
-                  child: Icon(
-                    ikon,
-                    key: ValueKey<String>(durum), // Durum değiştikçe widget'ı yeniden oluşturur
-                    size: 40,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
+          color: Colors.white.withOpacity(0.1),
+          child: Stack(
+            children: [
+              // Stronger neon border
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: OctagonPainter(color: renk),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Masa ${masaNo.toString()}',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        shadows: [
-                          const Shadow(
-                            blurRadius: 2.0,
-                            color: Colors.black26,
-                            offset: Offset(1.0, 1.0),
+              ),
+              // Glassy content
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onTap,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(ikon, size: 40, color: renk),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Masa ${masaNo}',
+                          style: TextStyle(
+                            color: renk,
+                            fontWeight: FontWeight.bold,
+                            shadows: [Shadow(blurRadius: 12, color: renk, offset: Offset(0, 0))],
                           ),
-                        ],
-                      ),
-                ),
-                const SizedBox(height: 8),
-                if (durum != 'bos')
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      durumMetni,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        if (durum != 'bos') Text(
+                          durumMetni,
+                          style: TextStyle(
+                            color: renk,
+                            fontWeight: FontWeight.w600,
+                            shadows: [Shadow(blurRadius: 10, color: renk, offset: Offset(0, 0))],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+// Saksı kartı için 8 köşeli neon kenar çizen CustomPainter ve Clipper
+class OctagonClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final double w = size.width;
+    final double h = size.height;
+    final Path path = Path()
+      ..moveTo(w * 0.4, 0)
+      ..lineTo(w * 0.6, 0)
+      ..lineTo(w, h * 0.4)
+      ..lineTo(w, h * 0.6)
+      ..lineTo(w * 0.6, h)
+      ..lineTo(w * 0.4, h)
+      ..lineTo(0, h * 0.6)
+      ..lineTo(0, h * 0.4)
+      ..close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class OctagonPainter extends CustomPainter {
+  final Color color;
+  OctagonPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = OctagonClipper().getClip(size);
+    // Stronger glow stroke
+    final glowPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6
+      ..color = color.withOpacity(0.8)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 12);
+    canvas.drawPath(path, glowPaint);
+    // Sharp neon stroke
+    final strokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..color = color;
+    canvas.drawPath(path, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 } 

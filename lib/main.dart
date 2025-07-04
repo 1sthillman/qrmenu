@@ -3,12 +3,19 @@ import 'package:adisyon_uygulamasi/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:adisyon_uygulamasi/widgets/shared/lava_lamp_background.dart';
+import 'package:provider/provider.dart';
+import 'package:adisyon_uygulamasi/utils/theme_notifier.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 // Global Supabase istemcisi
 late final SupabaseClient supabase;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Initialize Hive for local caching
+  await Hive.initFlutter();
+  await Hive.openBox('masalarBox');
 
   // Supabase'i başlatırken daha kararlı ayarlar kullanıyoruz.
   // - persistSession: false -> Oturum bilgilerini cihazda saklama, her seferinde temiz başla.
@@ -23,7 +30,20 @@ Future<void> main() async {
 
   supabase = Supabase.instance.client;
 
-  runApp(const MyApp());
+  // NetworkImage yükleme hatalarını yoksay
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (details.exception is NetworkImageLoadException) {
+      return;
+    }
+    FlutterError.dumpErrorToConsole(details);
+  };
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeNotifier(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -31,53 +51,116 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Renk paleti ve tema ayarları
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF4A69BD),
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
+
+    // Neon accent ve temalar
+    const neonColor = Color(0xFF00FFF1);
+
+    final darkColorScheme = ColorScheme.fromSeed(
+      seedColor: neonColor,
       brightness: Brightness.dark,
     );
+
+    final lightColorScheme = ColorScheme.fromSeed(
+      seedColor: neonColor,
+      brightness: Brightness.light,
+    );
+
     return MaterialApp(
       title: 'Adisyon Uygulaması',
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        // Solid mat siyah arka plan
+        return Container(
+          color: themeNotifier.isDarkMode ? Colors.black : Colors.white,
+          child: child,
+        );
+      },
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: colorScheme,
+        colorScheme: lightColorScheme,
         textTheme: GoogleFonts.poppinsTextTheme().apply(
-          bodyColor: colorScheme.onBackground,
-          displayColor: colorScheme.onBackground,
+          bodyColor: lightColorScheme.onBackground,
+          displayColor: lightColorScheme.onBackground,
         ),
         primaryTextTheme: GoogleFonts.poppinsTextTheme().apply(
-          bodyColor: colorScheme.onPrimary,
-          displayColor: colorScheme.onPrimary,
+          bodyColor: lightColorScheme.onPrimary,
+          displayColor: lightColorScheme.onPrimary,
         ),
-        scaffoldBackgroundColor: colorScheme.background,
-        appBarTheme: AppBarTheme(
-          backgroundColor: colorScheme.primary,
-          surfaceTintColor: colorScheme.surfaceTint,
-          elevation: 2,
-          titleTextStyle: GoogleFonts.poppins(
-            fontSize: 20, fontWeight: FontWeight.w600, color: colorScheme.onPrimary),
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          iconTheme: IconThemeData(color: neonColor),
+          elevation: 0,
+          titleTextStyle: TextStyle(
+            fontSize: 20, fontWeight: FontWeight.w600, color: neonColor),
         ),
         cardTheme: CardThemeData(
-          color: colorScheme.surfaceVariant,
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          color: Colors.transparent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: neonColor.withOpacity(0.6)),
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: colorScheme.primaryContainer,
-            foregroundColor: colorScheme.onPrimaryContainer,
+            backgroundColor: neonColor,
+            foregroundColor: Colors.black,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
         bottomSheetTheme: BottomSheetThemeData(
-          backgroundColor: colorScheme.surface,
+          backgroundColor: Colors.grey.shade200,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
         ),
       ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: darkColorScheme,
+        textTheme: GoogleFonts.poppinsTextTheme().apply(
+          bodyColor: darkColorScheme.onBackground,
+          displayColor: darkColorScheme.onBackground,
+        ),
+        primaryTextTheme: GoogleFonts.poppinsTextTheme().apply(
+          bodyColor: darkColorScheme.onPrimary,
+          displayColor: darkColorScheme.onPrimary,
+        ),
+        scaffoldBackgroundColor: Colors.black,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.black,
+          iconTheme: IconThemeData(color: neonColor),
+          elevation: 0,
+          titleTextStyle: TextStyle(
+            fontSize: 20, fontWeight: FontWeight.w600, color: neonColor),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.transparent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: neonColor.withOpacity(0.6)),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: neonColor,
+            foregroundColor: Colors.black,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ),
+        bottomSheetTheme: BottomSheetThemeData(
+          backgroundColor: Colors.grey[900],
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+        ),
+      ),
+      themeMode: themeNotifier.themeMode,
       home: const LoginScreen(),
     );
   }

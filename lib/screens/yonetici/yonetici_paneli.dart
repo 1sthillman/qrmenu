@@ -2,6 +2,7 @@ import 'package:adisyon_uygulamasi/main.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // Ürün modelini buraya taşıyarak yeniden kullanılabilir hale getirelim
 class Urun {
@@ -47,7 +48,7 @@ class _UrunYonetimEkraniState extends State<UrunYonetimEkrani> {
         return AlertDialog(
           backgroundColor: Theme.of(context).colorScheme.surface,
           title: Text(urun == null ? 'Yeni Ürün Ekle' : 'Ürünü Düzenle',
-            style: const TextStyle(color: Colors.white)),
+            style: TextStyle(color: Theme.of(context).colorScheme.onBackground)),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -56,13 +57,13 @@ class _UrunYonetimEkraniState extends State<UrunYonetimEkrani> {
                 children: [
                   TextFormField(
                     controller: adController,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
                     decoration: InputDecoration(
                       labelText: 'Ürün Adı',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      hintStyle: const TextStyle(color: Colors.white38),
+                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7)),
+                      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4)),
                       filled: true,
-                      fillColor: Colors.white12,
+                      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.black12,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                     validator: (value) => value!.isEmpty ? 'Bu alan boş bırakılamaz' : null,
@@ -70,13 +71,13 @@ class _UrunYonetimEkraniState extends State<UrunYonetimEkrani> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: fiyatController,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
                     decoration: InputDecoration(
                       labelText: 'Fiyat',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      hintStyle: const TextStyle(color: Colors.white38),
+                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7)),
+                      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4)),
                       filled: true,
-                      fillColor: Colors.white12,
+                      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.black12,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                     keyboardType: TextInputType.number,
@@ -85,13 +86,13 @@ class _UrunYonetimEkraniState extends State<UrunYonetimEkrani> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: kategoriController,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
                     decoration: InputDecoration(
                       labelText: 'Kategori',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      hintStyle: const TextStyle(color: Colors.white38),
+                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7)),
+                      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4)),
                       filled: true,
-                      fillColor: Colors.white12,
+                      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.black12,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                     validator: (value) => value!.isEmpty ? 'Bu alan boş bırakılamaz' : null,
@@ -99,13 +100,13 @@ class _UrunYonetimEkraniState extends State<UrunYonetimEkrani> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: imageController,
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
                     decoration: InputDecoration(
                       labelText: 'Resim URL',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      hintStyle: const TextStyle(color: Colors.white38),
+                      labelStyle: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7)),
+                      hintStyle: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4)),
                       filled: true,
-                      fillColor: Colors.white12,
+                      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.black12,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                     keyboardType: TextInputType.url,
@@ -171,6 +172,7 @@ class _UrunYonetimEkraniState extends State<UrunYonetimEkrani> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _urunlerStream,
         builder: (context, snapshot) {
@@ -217,196 +219,29 @@ class _UrunYonetimEkraniState extends State<UrunYonetimEkrani> {
   }
 }
 
-class RaporlamaEkrani extends StatefulWidget {
-  const RaporlamaEkrani({super.key});
-
-  @override
-  State<RaporlamaEkrani> createState() => _RaporlamaEkraniState();
-}
-
-class _RaporlamaEkraniState extends State<RaporlamaEkrani> {
-  DateTime _baslangicTarihi = DateTime.now().subtract(const Duration(days: 7));
-  DateTime _bitisTarihi = DateTime.now();
-  bool _isLoading = false;
-
-  Map<String, dynamic>? _ciroRaporu;
-  List<Map<String, dynamic>>? _enCokSatanlar;
-
-  Future<void> _tarihSec(BuildContext context, bool isBaslangic) async {
-    final DateTime? secilen = await showDatePicker(
-      context: context,
-      initialDate: isBaslangic ? _baslangicTarihi : _bitisTarihi,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-    if (secilen != null) {
-      setState(() {
-        if (isBaslangic) {
-          _baslangicTarihi = secilen;
-        } else {
-          _bitisTarihi = secilen;
-        }
-      });
-    }
-  }
-
-  Future<void> _raporOlustur() async {
-    setState(() => _isLoading = true);
-    try {
-      final ciroData = await supabase.rpc('get_ciro_raporu', params: {
-        'baslangic_tarihi': _baslangicTarihi.toIso8601String(),
-        'bitis_tarihi': _bitisTarihi.toIso8601String(),
-      }).single();
-
-      final enCokSatanlarData = await supabase.rpc('get_en_cok_satan_urunler', params: {
-        'baslangic_tarihi': _baslangicTarihi.toIso8601String(),
-        'bitis_tarihi': _bitisTarihi.toIso8601String(),
-        'urun_limiti': 5,
-      });
-
-      setState(() {
-        _ciroRaporu = ciroData;
-        _enCokSatanlar = List<Map<String, dynamic>>.from(enCokSatanlarData);
-      });
-
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Rapor oluşturulurken hata: ${e.toString()}'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Tarih Seçim Alanı
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Text('Rapor Tarih Aralığı', style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () => _tarihSec(context, true),
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text('Başlangıç: ${DateFormat('dd/MM/yyyy').format(_baslangicTarihi)}'),
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: () => _tarihSec(context, false),
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text('Bitiş: ${DateFormat('dd/MM/yyyy').format(_bitisTarihi)}'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _raporOlustur,
-                      child: _isLoading ? const CircularProgressIndicator() : const Text('Rapor Oluştur'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            if (_isLoading) const Padding(
-              padding: EdgeInsets.all(32.0),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-
-            if (!_isLoading && _ciroRaporu != null) ...[
-              const SizedBox(height: 20),
-              // Ciro Raporu Kartı
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.monetization_on, color: Colors.green, size: 40),
-                  title: Text('${_ciroRaporu!['toplam_ciro'].toStringAsFixed(2)} TL'),
-                  subtitle: const Text('Toplam Ciro'),
-                ),
-              ),
-              Card(
-                 child: ListTile(
-                  leading: const Icon(Icons.receipt_long, color: Colors.blue, size: 40),
-                  title: Text(_ciroRaporu!['toplam_siparis_sayisi'].toString()),
-                  subtitle: const Text('Toplam Sipariş Sayısı'),
-                ),
-              ),
-            ],
-
-            if (!_isLoading && _enCokSatanlar != null) ...[
-              const SizedBox(height: 20),
-              // En Çok Satanlar Tablosu
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                       Text('En Çok Satan Ürünler', style: Theme.of(context).textTheme.titleLarge),
-                       const SizedBox(height: 8),
-                      DataTable(
-                        columns: const [
-                          DataColumn(label: Text('Ürün Adı')),
-                          DataColumn(label: Text('Satış Adeti'), numeric: true),
-                        ],
-                        rows: _enCokSatanlar!.map((urun) => DataRow(
-                          cells: [
-                            DataCell(Text(urun['urun_adi'].toString())),
-                            DataCell(Text(urun['satis_adeti'].toString())),
-                          ]
-                        )).toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ]
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class YoneticiPaneli extends StatelessWidget {
   const YoneticiPaneli({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 0,
-          bottom: TabBar(
-            labelColor: Theme.of(context).colorScheme.onPrimary,
-            unselectedLabelColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
-            indicatorColor: Theme.of(context).colorScheme.secondary,
-            tabs: [
-              Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Ürün Yönetimi'),
-              Tab(icon: Icon(Icons.bar_chart_outlined), text: 'Raporlama'),
-            ],
-          ),
+    // Neon accent rengi
+    const neonColor = Color(0xFF00FFF1);
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(
+          'Ürün Yönetimi',
+          style: GoogleFonts.poppins(color: neonColor, fontWeight: FontWeight.bold),
         ),
-        body: const TabBarView(
-          children: [
-            UrunYonetimEkrani(),
-            RaporlamaEkrani(),
-          ],
-        ),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        iconTheme: const IconThemeData(color: neonColor),
+        elevation: 0,
+        actions: [
+          Icon(Icons.inventory_2_outlined, color: neonColor),
+          const SizedBox(width: 16),
+        ],
       ),
+      body: const UrunYonetimEkrani(),
     );
   }
 } 

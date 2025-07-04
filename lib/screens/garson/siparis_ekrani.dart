@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert'; // JSON işlemleri için eklendi
 import 'package:equatable/equatable.dart';
 import 'dart:async'; // Realtime sipariş takibi için
+import 'package:adisyon_uygulamasi/utils/sound_player.dart';
+import 'package:adisyon_uygulamasi/utils/theme_helpers.dart';
 
 // Sipariş verisi için model
 class Urun extends Equatable {
@@ -150,6 +152,12 @@ class _SiparisEkraniState extends State<SiparisEkrani> {
         .listen((data) {
       if (data.isNotEmpty) {
         final item = data.first;
+        // Yeni duruma göre ses çal
+        final newStatus = item['durum'] as String?;
+        final prevStatus = _siparisDurum;
+        if (prevStatus != newStatus && newStatus == 'hazir') {
+          SoundPlayer.orderReady();
+        }
         _siparisDurum = item['durum'] as String?;
         final urunlerJson = item['urunler'] as Map<String, dynamic>;
         final yeniSecilen = <Urun, int>{};
@@ -167,7 +175,7 @@ class _SiparisEkraniState extends State<SiparisEkrani> {
         if (mounted) setState(() => _secilenUrunler = yeniSecilen);
         _oncekiSecilen = Map.from(yeniSecilen);
       } else if (mounted) {
-        setState(() {
+    setState(() {
           _secilenUrunler.clear();
           _siparisDurum = null;
           _siparisId = null;
@@ -194,8 +202,8 @@ class _SiparisEkraniState extends State<SiparisEkrani> {
     if (sonuc != null) {
       setState(() {
         _secilenUrunler = sonuc;
-      });
-    }
+    });
+  }
   }
 
   // Siparişi onaylama fonksiyonu
@@ -241,6 +249,8 @@ class _SiparisEkraniState extends State<SiparisEkrani> {
         'p_urunler': urunlerJson,
         'p_notlar': _notController.text,
       });
+      // Sipariş onaylandı bildirimi
+      SoundPlayer.orderConfirmed();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -268,20 +278,24 @@ class _SiparisEkraniState extends State<SiparisEkrani> {
     setState(() => _isLoading = true);
     try {
       await supabase.rpc('siparisi_teslim_alindi', params: {'p_siparis_id': _siparisId});
+      // Sipariş teslim alındı bildirimi
+      SoundPlayer.orderReceived();
       // UI'ı güncelle: Servis Edildi butonunu göster
       if (mounted) setState(() => _siparisDurum = 'teslim_edildi');
     } catch (e) {
       _showErrorSnackbar('Teslim alma sırasında hata: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+      }
     }
-  }
 
   // Servis edildi olarak işaretler ve ekranı kapatır
   Future<void> _servisEdildi() async {
     setState(() => _isLoading = true);
     try {
       await supabase.rpc('servis_edildi', params: {'p_masa_id': widget.masaNo});
+      // Servis edildi bildirimi
+      SoundPlayer.serviceCompleted();
       if (mounted) Navigator.pop(context);
     } catch (e) {
       _showErrorSnackbar('Servis etme sırasında hata: $e');
@@ -302,53 +316,66 @@ class _SiparisEkraniState extends State<SiparisEkrani> {
 
   @override
   Widget build(BuildContext context) {
+    final neonColor = Colors.cyanAccent;
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Masa ${widget.masaNo} Siparişi', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
-        backgroundColor: const Color(0xFF2C3E50),
+        backgroundColor: Colors.black,
+        iconTheme: IconThemeData(color: neonColor),
+        title: Text(
+          'Masa ${widget.masaNo} Siparişi',
+          style: GoogleFonts.poppins(color: neonColor, fontWeight: FontWeight.w600),
+        ),
+        elevation: 0,
       ),
-      backgroundColor: const Color(0xFF1D2A3A),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: _secilenUrunler.isEmpty
-                ? _buildBosSiparisEkrani()
-                : _buildSiparisListesi(),
+          Positioned.fill(
+            child: Container(color: Colors.black),
           ),
-          _buildAltKontrolPaneli(),
+          SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: _secilenUrunler.isEmpty
+                      ? _buildBosSiparisEkrani(neonColor)
+                      : _buildSiparisListesi(),
+                ),
+                _buildAltKontrolPaneli(neonColor),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // Sipariş listesi boş olduğunda gösterilecek widget.
-  Widget _buildBosSiparisEkrani() {
+  Widget _buildBosSiparisEkrani(Color neonColor) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.receipt_long, size: 80, color: Colors.blueGrey.shade300),
+                      children: [
+          Icon(Icons.receipt_long, size: 80, color: neonColor),
           const SizedBox(height: 16),
           Text(
             'Siparişiniz Henüz Boş',
             style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: neonColor,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Aşağıdaki butona tıklayarak ürün eklemeye başlayın.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(fontSize: 14, color: Colors.blueGrey.shade200),
-          ),
-        ],
-      ),
-    );
+            style: GoogleFonts.poppins(fontSize: 14, color: neonColor.withOpacity(0.7)),
+                        ),
+                      ],
+                    ),
+                  );
   }
 
-  // Seçilen ürünlerin listelendiği widget.
   Widget _buildSiparisListesi() {
     return ListView.builder(
       padding: const EdgeInsets.all(8.0),
@@ -359,7 +386,7 @@ class _SiparisEkraniState extends State<SiparisEkrani> {
         final toplamFiyat = urun.fiyat * miktar;
 
         return Card(
-          color: const Color(0xFF2C3E50),
+          color: context.cardFill(0.15, 0.05),
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: ListTile(
@@ -376,31 +403,30 @@ class _SiparisEkraniState extends State<SiparisEkrani> {
                     )
                   : const Icon(Icons.fastfood, size: 50, color: Colors.white38),
             ),
-            title: Text(urun.ad, style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+            title: Text(urun.ad, style: GoogleFonts.poppins(color: context.onBg(), fontWeight: FontWeight.bold)),
             subtitle: Text(
               '$miktar Adet - Birim Fiyat: ${urun.fiyat.toStringAsFixed(2)} TL',
-              style: GoogleFonts.poppins(color: Colors.white70),
+              style: GoogleFonts.poppins(color: context.onBg(0.7)),
             ),
             trailing: Text(
               '${toplamFiyat.toStringAsFixed(2)} TL',
               style: GoogleFonts.poppins(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
-        );
-      },
-    );
+              );
+            },
+          );
   }
 
-  // Ekranın altındaki not, ürün ekle ve onayla butonlarını içeren panel.
-  Widget _buildAltKontrolPaneli() {
+  Widget _buildAltKontrolPaneli(Color neonColor) {
     // Toplam tutarı hesapla
     final toplamTutar = _secilenUrunler.entries
         .map((e) => e.key.fiyat * e.value)
         .fold(0.0, (prev, element) => prev + element);
     return Container(
       padding: const EdgeInsets.all(16).copyWith(bottom: MediaQuery.of(context).padding.bottom + 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF2C3E50),
+      decoration: BoxDecoration(
+        color: context.isDark ? Colors.grey[900] : Colors.grey.shade300,
         boxShadow: [
           BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -2)),
         ],
@@ -409,66 +435,69 @@ class _SiparisEkraniState extends State<SiparisEkrani> {
           topRight: Radius.circular(20),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Toplam Tutar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Toplam Tutar:", style: GoogleFonts.poppins(fontSize: 18, color: Colors.white70, fontWeight: FontWeight.w500)),
-              Text("${toplamTutar.toStringAsFixed(2)} TL", style: GoogleFonts.poppins(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold)),
+              Text("Toplam Tutar:", style: GoogleFonts.poppins(fontSize: 18, color: context.onBg(0.7), fontWeight: FontWeight.w500)),
+              Text("${toplamTutar.toStringAsFixed(2)} TL", style: GoogleFonts.poppins(fontSize: 22, color: context.onBg(), fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 16),
           // Not ekleme
-          TextField(
-            controller: _notController,
-            style: const TextStyle(color: Colors.white),
+            TextField(
+              controller: _notController,
+            style: TextStyle(color: context.onBg()),
             decoration: InputDecoration(
               hintText: 'Sipariş notu ekleyin... (isteğe bağlı)',
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-              prefixIcon: const Icon(Icons.note_alt_outlined, color: Colors.white70),
+              hintStyle: TextStyle(color: context.onBg(0.5)),
+              prefixIcon: Icon(Icons.note_alt_outlined, color: context.onBg(0.7)),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.1),
+              fillColor: context.cardFill(0.1,0.05),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
           // Ürün ekle
           SizedBox(
             width: double.infinity,
             child: TextButton.icon(
               onPressed: _showUrunSecimPopup,
-              icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
-              label: Text('Ürün Ekle / Düzenle', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              icon: Icon(Icons.add_shopping_cart, color: neonColor),
+              label: Text('Ürün Ekle / Düzenle', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: neonColor)),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                backgroundColor: Colors.blueGrey.shade600,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: neonColor)),
+                backgroundColor: Colors.black,
+                shadowColor: neonColor.withOpacity(0.5),
+                elevation: 4,
               ),
             ),
           ),
           const SizedBox(height: 12),
           // Siparişi Onayla
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _isLoading ? null : _siparisiOnayla,
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _siparisiOnayla,
               icon: _isLoading
                   ? const SizedBox.shrink()
-                  : const Icon(Icons.check_circle_outline, color: Colors.black87),
-              label: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.black87)
-                  : Text('Siparişi Onayla', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  : Icon(Icons.check_circle_outline, color: Colors.black),
+                label: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.black)
+                  : Text('Siparişi Onayla', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                backgroundColor: Colors.amber,
-                disabledBackgroundColor: Colors.grey.shade400,
+                backgroundColor: neonColor,
+                shadowColor: neonColor.withOpacity(0.7),
+                elevation: 6,
               ),
             ),
           ),

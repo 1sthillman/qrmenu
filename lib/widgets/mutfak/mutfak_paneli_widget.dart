@@ -1,6 +1,7 @@
 import 'package:adisyon_uygulamasi/main.dart';
 import 'package:adisyon_uygulamasi/widgets/mutfak/siparis_karti_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:adisyon_uygulamasi/utils/sound_player.dart';
 
 class MutfakPaneli extends StatefulWidget {
   const MutfakPaneli({super.key});
@@ -44,6 +45,8 @@ class _MutfakPaneliState extends State<MutfakPaneli> {
 
     try {
       await supabase.rpc('siparisi_hazir_yap', params: {'p_siparis_id': siparisId});
+      // Siparişi hazır yapıldığında ses çal
+      SoundPlayer.orderReady();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

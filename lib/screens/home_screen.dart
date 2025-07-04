@@ -5,22 +5,50 @@ import '../widgets/mutfak/mutfak_paneli_widget.dart';
 import '../widgets/kasiyer/kasiyer_paneli_widget.dart';
 import 'yonetici/yonetici_paneli.dart'; // Yönetici paneli importu
 import 'package:animations/animations.dart';
+import '../widgets/shared/theme_toggle_button.dart';
 
 class HomeScreen extends StatelessWidget {
   final String userRole;
 
   const HomeScreen({super.key, required this.userRole});
 
+  // Ortak panel kart stili
+  Widget _styledPanel(Widget child) {
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.2)
+                  : Colors.black.withOpacity(0.1),
+            ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: child,
+      ),
+        );
+      },
+    );
+  }
+
   Widget _buildPanelForRole(String role) {
     switch (role) {
       case 'garson':
-        return const MasaGridi();
+        return _styledPanel(const MasaGridi());
       case 'mutfak':
-        return const MutfakPaneli();
+        return _styledPanel(const MutfakPaneli());
       case 'kasiyer':
-        return const KasiyerPaneli();
+        return _styledPanel(const KasiyerPaneli());
       case 'yonetici':
-        return const YoneticiPaneli();
+        return _styledPanel(const YoneticiPaneli());
       default:
         return const Center(child: Text('Bilinmeyen rol veya yetkiniz yok.'));
     }
@@ -51,9 +79,12 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(_getTitleForRole(userRole)),
         actions: [
+          const ThemeToggleButton(),
+          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Çıkış Yap',
@@ -61,19 +92,31 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: PageTransitionSwitcher(
-        duration: const Duration(milliseconds: 400),
-        reverse: false,
-        transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
-          return SharedAxisTransition(
-            fillColor: Theme.of(context).colorScheme.background,
-            animation: primaryAnimation,
-            secondaryAnimation: secondaryAnimation,
-            transitionType: SharedAxisTransitionType.horizontal,
-            child: child,
-          );
-        },
-        child: _buildPanelForRole(userRole),
+      body: Stack(
+        children: [
+          // Mat siyah arka plan
+          Positioned.fill(
+            child: Container(
+              color: Theme.of(context).scaffoldBackgroundColor,
+            ),
+          ),
+          SafeArea(
+            child: PageTransitionSwitcher(
+              duration: const Duration(milliseconds: 400),
+              reverse: false,
+              transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
+                return SharedAxisTransition(
+                  fillColor: Colors.transparent,
+                  animation: primaryAnimation,
+                  secondaryAnimation: secondaryAnimation,
+                  transitionType: SharedAxisTransitionType.horizontal,
+                  child: child,
+                );
+              },
+              child: _buildPanelForRole(userRole),
+            ),
+          ),
+        ],
       ),
     );
   }

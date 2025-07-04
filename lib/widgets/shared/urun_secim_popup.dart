@@ -2,6 +2,9 @@ import 'package:adisyon_uygulamasi/main.dart';
 import 'package:adisyon_uygulamasi/screens/garson/siparis_ekrani.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'glass_container.dart';
+import 'package:adisyon_uygulamasi/utils/theme_helpers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 // Ürün seçimi için kullanılacak olan, alttan açılan modern popup.
 class UrunSecimPopup extends StatefulWidget {
@@ -66,6 +69,17 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
     });
   }
 
+  bool _isDark(BuildContext context) => Theme.of(context).brightness == Brightness.dark;
+
+  Color _textColor(BuildContext context, [double opacity = 1]) {
+    return Theme.of(context).colorScheme.onBackground.withOpacity(opacity);
+  }
+
+  Color _cardColor(BuildContext context, double darkOpacity, double lightOpacity) {
+    final isDark = _isDark(context);
+    return (isDark ? Colors.white : Colors.black).withOpacity(isDark ? darkOpacity : lightOpacity);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Kategorileri dinamik olarak ürün listesinden oluşturur.
@@ -77,23 +91,25 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
       maxChildSize: 0.9,
       expand: false,
       builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF1D2A3A),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildAramaVeFiltre(kategoriler),
-              Expanded(
-                child: _buildUrunGrid(scrollController),
+        return GlassContainer(
+          borderRadius: 20,
+          child: Container(
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
               ),
-              _buildFooter(),
-            ],
+            ),
+            child: Column(
+              children: [
+                _buildHeader(),
+                _buildAramaVeFiltre(kategoriler),
+                Expanded(
+                  child: _buildUrunGrid(scrollController),
+                ),
+                _buildFooter(),
+              ],
+            ),
           ),
         );
       },
@@ -112,11 +128,11 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
             style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: _textColor(context),
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: Icon(Icons.close, color: context.isDark ? Colors.white : Colors.black),
             onPressed: () => Navigator.pop(context), // Değişiklikleri kaydetmeden kapat
           ),
         ],
@@ -132,13 +148,13 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
         children: [
           TextField(
             controller: _aramaController,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: context.isDark ? Colors.white : Colors.black),
             decoration: InputDecoration(
               hintText: 'Ürün ara...',
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-              prefixIcon: const Icon(Icons.search, color: Colors.white70),
+              hintStyle: TextStyle(color: (context.isDark ? Colors.white : Colors.black).withOpacity(0.5)),
+              prefixIcon: Icon(Icons.search, color: (context.isDark ? Colors.white : Colors.black).withOpacity(0.7)),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.1),
+              fillColor: _cardColor(context,0.1,0.05),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -165,10 +181,10 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
                       });
                     }
                   },
-                  backgroundColor: Colors.white.withOpacity(0.1),
+                  backgroundColor: _cardColor(context,0.1,0.05),
                   selectedColor: Colors.amber,
                   labelStyle: GoogleFonts.poppins(
-                    color: isSelected ? Colors.black87 : Colors.white,
+                    color: isSelected ? Colors.black87 : _textColor(context),
                     fontWeight: FontWeight.w600,
                   ),
                   shape: RoundedRectangleBorder(
@@ -191,13 +207,13 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
       return Center(
         child: Text(
           'Aramanızla eşleşen ürün bulunamadı.',
-          style: GoogleFonts.poppins(color: Colors.white70),
+          style: GoogleFonts.poppins(color: _textColor(context,0.7)),
         ),
       );
     }
     
-    // Responsive sütun sayısı: mobilde 3, geniş ekranda 5
-    final crossCount = MediaQuery.of(context).size.width < 600 ? 3 : 5;
+    // Responsive sütun sayısı: mobilde 2, geniş ekranda 5
+    final crossCount = MediaQuery.of(context).size.width < 600 ? 2 : 5;
     
     return GridView.builder(
       controller: scrollController,
@@ -213,22 +229,28 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
         final urun = _filtrelenmisUrunler[index];
         final miktar = _secilenUrunler[urun] ?? 0;
 
-        return Card(
-          color: const Color(0xFF2C3E50),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          clipBehavior: Clip.antiAlias,
+        const neonColor = Color(0xFF00FFF1);
+        return Container(
+          decoration: BoxDecoration(
+            color: _isDark(context) ? Colors.black : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: neonColor.withOpacity(0.6), width: 1.5),
+            boxShadow: [
+              BoxShadow(color: neonColor.withOpacity(0.3), blurRadius: 8, spreadRadius: 1),
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
                 child: urun.imageUrl != null && urun.imageUrl!.isNotEmpty
-                  ? Image.network(
-                      urun.imageUrl!,
+                  ? CachedNetworkImage(
+                      imageUrl: urun.imageUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                        const Center(child: Icon(Icons.broken_image, color: Colors.white38, size: 40)),
+                      placeholder: (context, url) => Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary)),
+                      errorWidget: (context, url, error) => Center(child: Icon(Icons.fastfood, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7), size: 40)),
                     )
-                  : const Center(child: Icon(Icons.fastfood, color: Colors.white38, size: 40)),
+                  : Center(child: Icon(Icons.fastfood, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7), size: 40)),
               ),
               Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -237,34 +259,28 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
                   children: [
                     Text(
                       urun.ad,
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: _textColor(context)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       '${urun.fiyat.toStringAsFixed(2)} TL',
-                      style: GoogleFonts.poppins(color: Colors.white70),
+                      style: GoogleFonts.poppins(color: _textColor(context,0.7)),
                     ),
                   ],
                 ),
               ),
               Container(
-                color: Colors.black.withOpacity(0.2),
+                color: _isDark(context) ? Colors.black.withOpacity(0.2) : Colors.grey.shade200,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle, color: Colors.redAccent),
-                      onPressed: () => _miktarGuncelle(urun, -1),
-                    ),
+                    _circleButton(Icons.remove, Colors.redAccent, () => _miktarGuncelle(urun, -1)),
                     Text(
                       miktar.toString(),
-                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: _textColor(context)),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle, color: Colors.greenAccent),
-                      onPressed: () => _miktarGuncelle(urun, 1),
-                    ),
+                    _circleButton(Icons.add, Colors.greenAccent, () => _miktarGuncelle(urun, 1)),
                   ],
                 ),
               ),
@@ -275,14 +291,29 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
     );
   }
 
+  Widget _circleButton(IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: color, width: 1.5),
+          boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 4)],
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+    );
+  }
+
   // Popup alt bilgisi ve "Ekle" butonu
   Widget _buildFooter() {
     final toplamAdet = _secilenUrunler.values.fold(0, (prev, miktar) => prev + miktar);
     
     return Container(
       padding: const EdgeInsets.all(16).copyWith(bottom: MediaQuery.of(context).padding.bottom + 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF2C3E50),
+      decoration: BoxDecoration(
+        color: _isDark(context) ? const Color(0xFF2C3E50) : Colors.grey.shade300,
         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -2))],
       ),
       child: Row(
@@ -291,7 +322,7 @@ class _UrunSecimPopupState extends State<UrunSecimPopup> {
           Expanded(
             child: Text(
               '$toplamAdet Ürün Seçildi',
-              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: _textColor(context)),
             ),
           ),
           ElevatedButton.icon(

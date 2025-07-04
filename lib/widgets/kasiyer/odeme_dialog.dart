@@ -79,13 +79,21 @@ class _OdemeDialogState extends State<OdemeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Masa ${widget.masaNo} - Ödeme'),
+      title: Text(
+        'Masa ${widget.masaNo} - Ödeme',
+        style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Toplam Tutar: ${widget.toplamTutar.toStringAsFixed(2)} TL', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              'Toplam Tutar: ${widget.toplamTutar.toStringAsFixed(2)} TL',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+              ),
+            ),
             const SizedBox(height: 20),
             SegmentedButton<String>(
               segments: const [
@@ -101,22 +109,40 @@ class _OdemeDialogState extends State<OdemeDialog> {
               const SizedBox(height: 20),
               TextField(
                 controller: _nakitController,
+                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
+                decoration: InputDecoration(
+                  labelText: 'Alınan Tutar',
+                  labelStyle: TextStyle(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7)),
+                  filled: true,
+                  fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.black12,
+                ),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
-                decoration: const InputDecoration(labelText: 'Alınan Tutar'),
                 onChanged: (_) => _hesapla(),
               ),
               const SizedBox(height: 10),
-              Text('Para Üstü: ${_paraUstu >= 0 ? _paraUstu.toStringAsFixed(2) : '0.00'} TL'),
+              Text(
+                'Para Üstü: ${_paraUstu >= 0 ? _paraUstu.toStringAsFixed(2) : '0.00'} TL',
+                style: TextStyle(color: Theme.of(context).colorScheme.onBackground),
+              ),
             ]
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('İptal')),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('İptal', style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+        ),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          ),
+          child: _isLoading
+              ? CircularProgressIndicator(color: Theme.of(context).colorScheme.onPrimary)
+              : Text('Ödemeyi Tamamla'),
           onPressed: _isLoading ? null : _odemeyiTamamla,
-          child: _isLoading ? const CircularProgressIndicator() : const Text('Ödemeyi Tamamla'),
         ),
       ],
     );

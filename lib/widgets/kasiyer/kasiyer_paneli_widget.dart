@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:adisyon_uygulamasi/main.dart';
 import 'dart:async'; // realtime ödeme güncellemesi için
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:adisyon_uygulamasi/utils/sound_player.dart';
+import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:adisyon_uygulamasi/utils/theme_helpers.dart';
 
 class KasiyerPaneli extends StatefulWidget {
   const KasiyerPaneli({super.key});
@@ -54,32 +58,32 @@ class _KasiyerPaneliState extends State<KasiyerPaneli> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+          return const Center(child: CircularProgressIndicator());
+        }
     if (_error != null) {
       return Center(child: Text('Hata: $_error'));
     }
     if (_odenecekMasalar.isEmpty) {
-      return const Center(
+          return const Center(
         child: Text('Ödeme Bekleyen Masa Yok', style: TextStyle(fontSize: 24, color: Colors.grey)),
-      );
-    }
-    return ListView.builder(
+          );
+        }
+        return ListView.builder(
       padding: const EdgeInsets.all(8),
       itemCount: _odenecekMasalar.length,
-      itemBuilder: (context, index) {
+          itemBuilder: (context, index) {
         final masa = _odenecekMasalar[index];
-        final masaNo = masa['masa_no'] as int;
+            final masaNo = masa['masa_no'] as int;
         final toplam = (masa['toplam_tutar'] as num).toDouble();
-        return Card(
+            return Card(
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-          elevation: 4,
-          child: ListTile(
-            leading: const Icon(Icons.receipt_long, size: 40, color: Colors.blueAccent),
-            title: Text('Masa $masaNo', style: Theme.of(context).textTheme.headlineSmall),
+              elevation: 4,
+              child: ListTile(
+                leading: const Icon(Icons.receipt_long, size: 40, color: Colors.blueAccent),
+                title: Text('Masa $masaNo', style: Theme.of(context).textTheme.headlineSmall),
             trailing: Text('${toplam.toStringAsFixed(2)} TL', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
             onTap: () => _showPaymentSheet(context, masaNo, toplam),
-          ),
+              ),
         );
       },
     );
@@ -151,6 +155,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
         'p_odeme_tipi': _odemeTipi,
         'p_alinan_tutar': double.tryParse(_nakitController.text) ?? widget.toplamTutar,
       });
+      // Ödeme alındı bildirimi
+      SoundPlayer.paymentReceived();
       Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ödeme hatası: $e')));
@@ -163,45 +169,60 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text('Masa ${widget.masaNo} - Sipariş Detayı', style: Theme.of(context).textTheme.headlineSmall),
+              child: Text('Masa ${widget.masaNo} - Sipariş Detayı', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: context.onBg())),
           ),
           ..._urunler.entries.map((e) => ListTile(
-            title: Text('${e.value['ad']} x${e.value['miktar']}'),
-            trailing: Text('${(e.value['fiyat'] as double).toStringAsFixed(2)} TL'),
+              title: Text('${e.value['ad']} x${e.value['miktar']}', style: TextStyle(color: context.onBg())),
+              trailing: Text('${(e.value['fiyat'] as double).toStringAsFixed(2)} TL', style: TextStyle(color: context.onBg())),
           )),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Toplam: ${widget.toplamTutar.toStringAsFixed(2)} TL'),
+                  Text('Toplam: ${widget.toplamTutar.toStringAsFixed(2)} TL', style: TextStyle(color: context.onBg())),
                 if (_odemeTipi == 'nakit') SizedBox(
                   width: 100,
                   child: TextField(
                     controller: _nakitController,
                     onChanged: (_) => _hesapla(),
                     keyboardType: TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Alınan'),
+                      style: TextStyle(color: context.onBg()),
+                      decoration: InputDecoration(
+                        labelText: 'Alınan',
+                        labelStyle: TextStyle(color: context.onBg(0.7)),
+                        filled: true,
+                        fillColor: context.cardFill(0.1,0.05),
+                      ),
                   ),
                 ),
               ],
             ),
           ),
-          Text('Para Üstü: ${_paraUstu >= 0 ? _paraUstu.toStringAsFixed(2) : '0.00'} TL'),
+            Text('Para Üstü: ${_paraUstu >= 0 ? _paraUstu.toStringAsFixed(2) : '0.00'} TL', style: TextStyle(color: context.onBg())),
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: TextButton(onPressed: _printReceipt, child: const Text('Fiş Yazdır'))),
-              Expanded(child: ElevatedButton(onPressed: _isLoading ? null : _odemeYap, child: const Text('Ödeme Al'))),
+                Expanded(child: TextButton(onPressed: _printReceipt, child: Text('Fiş Yazdır', style: TextStyle(color: Theme.of(context).colorScheme.primary)) )),
+                Expanded(child: ElevatedButton(
+                  onPressed: _isLoading ? null : _odemeYap,
+                  child: _isLoading ? CircularProgressIndicator(color: Theme.of(context).colorScheme.onPrimary) : const Text('Ödeme Al'),
+                )),
             ],
           ),
           const SizedBox(height: 16),
         ],
+        ),
       ),
     );
   }
